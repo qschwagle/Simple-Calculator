@@ -1,5 +1,15 @@
+FLAGS=-std=c++17 -Wall
+
+LIB=lib.cpp
+
 build:
-	clang++ -std=c++17 main.cpp -o calculator
+	clang++ $(FLAGS) $(LIB) main.cpp -o calculator
 
 test:
-	clang++ -std=c++17 test.cpp -o test
+	clang++ $(FLAGS) -D TEST $(LIB) tests.cpp test.cpp -o test
+
+.Phony: clean
+
+clean:
+	rm calculator
+	rm test
