@@ -3,7 +3,7 @@
 
 void Tokenizer::ignore_white(void)
 {
-    for(;buffer_.size() > pos_ && (buffer_[pos_] == ' ' || buffer_[pos_] == '\r' || buffer_[pos_] == '\n'); ++pos_);
+    for(;buffer_.size() > pos_ && (buffer_[pos_] == ' ' || buffer_[pos_] == '\r' || buffer_[pos_] == '\n' || buffer_[pos_] == '\t'); ++pos_);
 }
 
 std::unique_ptr<Number> Tokenizer::number(void)
@@ -63,6 +63,11 @@ std::unique_ptr<Token> Tokenizer::get_next_token(void)
     std::unique_ptr<Token> res = nullptr;
     ignore_white();
     ((res = op()) || (res = number()) || (res = param()));
+    ignore_white();
+    if(res == nullptr && buffer_.size() != pos_ ) {
+        std::cerr << "Unknown character: \"" << buffer_[pos_] << "\""<< std::endl; 
+        exit(EXIT_FAILURE);
+    }
     return res;
 }
 
