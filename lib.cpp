@@ -1,4 +1,5 @@
 #include "lib.hpp"
+#include "exception"
 
 void Tokenizer::ignore_white(void)
 {
@@ -92,28 +93,67 @@ int evaluate(std::vector<std::unique_ptr<Token>>& list, int& pos) {
     return 0;
 }
 
+// Two Tokens must be compared together
+// Token A is type Ca
+// Token B is type Cb
+// based on the types and zero or more parameterized values, an action must be taken and a modification done/result returned
+
+
 
 /** Shunting yard needs to be turned into a generator pattern */
 std::string Calculator::evaluate(std::string expression) {
     Tokenizer tokenizer(expression);
     std::unique_ptr<Token> token;
     std::vector<std::unique_ptr<Token>> output;
-    std::vector<std::unique_ptr<Operator>> ops;
+    std::vector<std::unique_ptr<Token>> ops;
     while ((token = tokenizer.get_next_token())) {
-        if(token->get_type() == number) {
+        PairVisitor pv;
+        token = pv.enter_token(std::move(token));
+        if(pv.first_is_number()) {
             output.push_back(std::move(token));
-        } else if (token->get_type() == op) {
-            // YES THIS IS BAD CODE
-            // YES IF DYNAMIC_CAST FAILS, THIS WILL BREAK HARD
-            // however, given that we checked for the type before the conversion, the conversion *should* always succeed
-            // should refactor later
-            std::unique_ptr<Operator> op(dynamic_cast<Operator*>(token.release()));
-            while((ops.size() > 0) && 
-                    (( ops.back()->get_precedence() > op->get_precedence() || (ops.back()->get_precedence() == op->get_precedence() && op->get_assoc() == left)))) {
-                output.push_back(std::move(ops.back()));
-                ops.pop_back();
+        } else if(pv.first_is_op()) {
+            while(true) {
+                if((ops.size() > 0)) {
+                    PairVisitor pv;
+                    token = pv.enter_token(std::move(token));
+                    auto temp = pv.enter_token(std::move(ops.back()));
+                    ops.pop_back();
+                    ops.push_back((std::move(temp)));
+                    if(pv.second_is_op() && (pv.comp_op_lesser_prec() || (pv.comp_op_equal_prec() && pv.first_op_assoc() == left))) {
+                        output.push_back(std::move(ops.back()));
+                        ops.pop_back();
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
             }
-            ops.push_back(std::move(op));
+            ops.push_back(std::move(token));
+        } else if(pv.first_is_param()) {
+            if(token->get_raw()[0] == '(') {
+                ops.push_back(std::move(token));
+            } else if(token->get_raw()[0] == ')') {
+                bool completed_successfully = false;
+                while (ops.size() > 0) {
+                    std::unique_ptr<Token> temp = std::move(ops.back());
+                    ops.pop_back();
+                    if(temp->get_raw()[0] != '(') {
+                        output.push_back(std::move(temp));
+                    } else {
+                        completed_successfully = true;
+                        if(temp->get_raw()[0] != '(') {
+                            ops.push_back(std::move(temp));
+                        } else {
+                            break;
+                        }
+                    }
+                }
+                if(!completed_successfully) {
+                    std::cerr << "non matching parenthesis" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+            }
         }
     }
     while (ops.size() > 0) {
