@@ -147,7 +147,7 @@ public:
 private:
 };
 
-int evaluate(std::vector<std::unique_ptr<Token>>& list, int& pos);
+double evaluate(std::vector<std::unique_ptr<Token>>& list, int& pos);
 
 class PairVisitor : public Visitor {
 public:

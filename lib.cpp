@@ -1,14 +1,18 @@
 #include "lib.hpp"
 #include "exception"
+#include <sstream>
 
 void Tokenizer::ignore_white(void)
 {
     for(;buffer_.size() > pos_ && (buffer_[pos_] == ' ' || buffer_[pos_] == '\r' || buffer_[pos_] == '\n' || buffer_[pos_] == '\t'); ++pos_);
 }
 
+
 std::unique_ptr<Number> Tokenizer::number(void)
 {
     unsigned int pos = pos_;
+    bool pt = false;
+    bool dec = false;
     for(;buffer_.size() > pos && 
             (
              buffer_[pos] == '0' || 
@@ -22,7 +26,26 @@ std::unique_ptr<Number> Tokenizer::number(void)
              buffer_[pos] == '8' || 
              buffer_[pos] == '9'
              ); ++pos);
-    if(pos == pos_) { 
+
+    if(buffer_.size() > pos && buffer_[pos] == '.') {
+        ++pos;
+        pt = true;
+        for(;buffer_.size() > pos && 
+                (
+                 buffer_[pos] == '0' || 
+                 buffer_[pos] == '1' || 
+                 buffer_[pos] == '2' || 
+                 buffer_[pos] == '3' || 
+                 buffer_[pos] == '4' || 
+                 buffer_[pos] == '5' || 
+                 buffer_[pos] == '6' || 
+                 buffer_[pos] == '7' || 
+                 buffer_[pos] == '8' || 
+                 buffer_[pos] == '9'
+                 ); ++pos ) { dec = true; }
+    }
+
+    if(pos == pos_ && (pt == dec) ) { 
         return std::unique_ptr<Number>();
     }
     else  {
@@ -71,13 +94,13 @@ std::unique_ptr<Token> Tokenizer::get_next_token(void)
     return res;
 }
 
-int evaluate(std::vector<std::unique_ptr<Token>>& list, int& pos) {
+double evaluate(std::vector<std::unique_ptr<Token>>& list, int& pos) {
     auto& last = list[pos];
     --pos;
     if(last->get_type() == number) {
-        return std::stoi(last->get_raw());
+        return std::stod(last->get_raw());
     } else if(last->get_type() == op) {
-        int val = evaluate(list, pos);
+        double val = evaluate(list, pos);
 
         switch(last->get_raw()[0]) {
             case '-':
@@ -103,8 +126,6 @@ int evaluate(std::vector<std::unique_ptr<Token>>& list, int& pos) {
 // Token B is type Cb
 // based on the types and zero or more parameterized values, an action must be taken and a modification done/result returned
 
-
-
 /** Shunting yard needs to be turned into a generator pattern */
 std::string Calculator::evaluate(std::string expression) {
     Tokenizer tokenizer(expression);
@@ -117,45 +138,53 @@ std::string Calculator::evaluate(std::string expression) {
         if(pv.first_is_number()) {
             output.push_back(std::move(token));
         } else if(pv.first_is_op()) {
-            while(true) {
-                if((ops.size() > 0)) {
-                    PairVisitor pv;
-                    token = pv.enter_token(std::move(token));
-                    auto temp = pv.enter_token(std::move(ops.back()));
+            while(ops.size() > 0) {
+                PairVisitor pv;
+                token = pv.enter_token(std::move(token));
+                auto temp = pv.enter_token(std::move(ops.back()));
+                ops.pop_back();
+                ops.push_back((std::move(temp)));
+                if((pv.second_is_op() && (pv.comp_op_lesser_prec() || (pv.comp_op_equal_prec() && pv.first_op_assoc() == left)))) {
+                    output.push_back(std::move(ops.back()));
                     ops.pop_back();
-                    ops.push_back((std::move(temp)));
-                    if(pv.second_is_op() && (pv.comp_op_lesser_prec() || (pv.comp_op_equal_prec() && pv.first_op_assoc() == left))) {
-                        output.push_back(std::move(ops.back()));
-                        ops.pop_back();
-                    } else {
-                        break;
-                    }
                 } else {
                     break;
                 }
             }
             ops.push_back(std::move(token));
         } else if(pv.first_is_param()) {
-            if(token->get_raw()[0] == '(') {
-                ops.push_back(std::move(token));
-            } else if(token->get_raw()[0] == ')') {
-                bool completed_successfully = false;
-                while (ops.size() > 0) {
-                    std::unique_ptr<Token> temp = std::move(ops.back());
-                    ops.pop_back();
-                    if(temp->get_raw()[0] != '(') {
-                        output.push_back(std::move(temp));
-                    } else {
-                        completed_successfully = true;
+            switch(token->get_raw()[0]) {
+                case '(':
+                {
+                    ops.push_back(std::move(token));
+                    break;
+                }
+                case ')':
+                {
+                    bool completed_successfully = false;
+                    while (ops.size() > 0) {
+                        std::unique_ptr<Token> temp = std::move(ops.back());
+                        ops.pop_back();
                         if(temp->get_raw()[0] != '(') {
-                            ops.push_back(std::move(temp));
+                            output.push_back(std::move(temp));
                         } else {
-                            break;
+                            completed_successfully = true;
+                            if(temp->get_raw()[0] != '(') {
+                                ops.push_back(std::move(temp));
+                            } else {
+                                break;
+                            }
                         }
                     }
+                    if(!completed_successfully) {
+                        std::cerr << "non matching parenthesis" << std::endl;
+                        exit(EXIT_FAILURE);
+                    }
+                    break;
                 }
-                if(!completed_successfully) {
-                    std::cerr << "non matching parenthesis" << std::endl;
+                default:
+                {
+                    std::cerr << "PARAM SHOULD ONLY HAVE EITHER ()" << std::endl;
                     exit(EXIT_FAILURE);
                 }
             }
@@ -165,15 +194,16 @@ std::string Calculator::evaluate(std::string expression) {
         output.push_back(std::move(ops.back()));
         ops.pop_back();
     }
-    for(auto& i: output) {
-        i->print();
-        std::cout << ",";
-    }
-    std::cout << std::endl;
+    //for(auto& i: output) {
+    //    i->print();
+    //    std::cout << ",";
+    //}
+    //std::cout << std::endl;
 
     int pos = output.size()-1;
-    std::cout << "output: " << ::evaluate(output, pos) << std::endl;;
-    return "";
+    std::stringstream out;
+    out << ::evaluate(output, pos);
+    return out.str();
 }
 
 // vim:set sw=4 ts=4 et:
