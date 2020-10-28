@@ -104,7 +104,7 @@ double evaluate(std::vector<std::unique_ptr<Token>>& list, int& pos) {
 
         switch(last->get_raw()[0]) {
             case '-':
-                val -= evaluate(list, pos);
+                val = evaluate(list, pos) - val;
                 break;
             case '+':
                 val += evaluate(list, pos);
@@ -113,7 +113,7 @@ double evaluate(std::vector<std::unique_ptr<Token>>& list, int& pos) {
                 val *= evaluate(list, pos);
                 break;
             case '/':
-                val /= evaluate(list, pos);
+                val = evaluate(list, pos) / val;
                 break;
         } 
         return val;
