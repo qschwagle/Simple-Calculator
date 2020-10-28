@@ -1,9 +1,9 @@
 FLAGS=-std=c++17 -Wall
 
-LIB=lib.cpp
+LIB=src/lib.cpp
 
 build:
-	clang++ -g $(FLAGS) $(LIB) main.cpp -o calculator
+	clang++ -g $(FLAGS) $(LIB) src/main.cpp -o calculator
 
 test:
 	clang++ $(FLAGS) -D TEST $(LIB) tests.cpp test.cpp -o test
