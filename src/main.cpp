@@ -1,8 +1,8 @@
-#include "lib.hpp"
+#include "Calculator.hpp"
 
 #include<sstream>
-
-
+#include<string>
+#include<iostream>
 
 int main(int argc, char** argv)
 {
