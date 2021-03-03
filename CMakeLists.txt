@@ -5,10 +5,16 @@ project(simple-calculator)
 set(FILES
 	src/Calculator.cpp
 	src/Tokenizer.cpp
-	src/main.cpp
 )
 
-add_executable(${PROJECT_NAME} ${FILES})
+add_library(${PROJECT_NAME}_lib ${FILES})
+
+add_executable(${PROJECT_NAME} src/main.cpp)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_lib)
 
 
 SET_PROPERTY(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
+
+add_subdirectory(tests)
+
