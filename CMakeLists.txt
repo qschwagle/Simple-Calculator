@@ -8,6 +8,7 @@ set(FILES
 )
 
 add_library(${PROJECT_NAME}_lib ${FILES})
+target_include_directories(${PROJECT_NAME}_lib PUBLIC include)
 
 add_executable(${PROJECT_NAME} src/main.cpp)
 
