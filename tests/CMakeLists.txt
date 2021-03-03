@@ -10,3 +10,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 target_link_libraries(tests PRIVATE gmock_main ${PROJECT_NAME}_lib)
+
+include(GoogleTest)
+
+gtest_discover_tests(tests)
+
