@@ -1,4 +1,4 @@
-add_executable(tests test_calculator.cpp)
+add_executable(tests test_calculator.cpp test_tokenizer.cpp)
 
 include(FetchContent)
 
