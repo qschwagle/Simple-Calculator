@@ -24,11 +24,5 @@ class Tokenizer {
         void set_pos(unsigned int pos) { pos_ = pos; }
         std::string buffer_;
         unsigned int pos_;
-
-#ifdef TEST
-    friend void test_space(void);
-    friend void test_number(void);
-    friend void test_op(void);
-#endif 
 };
 
